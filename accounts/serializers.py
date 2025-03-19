@@ -71,7 +71,73 @@ class MedicationSer(serializers.ModelSerializer):
     class Meta:
         model = Medications
         fields = ['id','name','start_date','end_date','time_interval','after_food','user']
+    
+    
+class DoctorSer(serializers.ModelSerializer):
+    hospital_name = serializers.ReadOnlyField(source="hospital.name")
+    class Meta:
+        model = Doctor
+        fields = ['id','name','email','phone','image','dob','gender','rating','department','about','experience','hospital','hospital_name']
+
+class PrescriptionSer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source = 'user.name')
+    doctor = DoctorSer()
+    class Meta:
+        model = Prescription
+        fields = ['id','image','doctor','date','user']
+    
+class PrescriptionAddSer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source = 'user.name')
+    doctor_name = serializers.ReadOnlyField(source = 'doctor.name')
+    class Meta:
+        model = Prescription
+        fields = ['id','image','doctor','date','user','doctor_name']
 
         
-      
+class EmergencyContactSer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source = 'user.name')
+    class Meta:
+        model = EmergencyContact
+        fields = '__all__'
  
+ 
+class FacilitySer(serializers.ModelSerializer):
+    class Meta:
+        model = Facilities
+        fields = '__all__'
+ 
+class BookingSer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking
+        fields = '__all__'
+ 
+class CategorySer(serializers.ModelSerializer):
+    class Meta:
+        model = Categories
+        fields = '__all__'
+ 
+class BookingGetSer(serializers.ModelSerializer):
+    doctor = DoctorSer()
+    category = CategorySer()
+    class Meta:
+        model = Booking
+        fields = '__all__'
+
+class HospitalSer(serializers.ModelSerializer):
+    doctors = DoctorSer(many=True)  # This will list all doctors in the hospital
+    facilities = FacilitySer(many=True)
+    class Meta:
+        model = Hospital
+        fields = ['id','name','location','rating','about','image','doctors','facilities']
+        
+        
+
+class ReminderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reminder
+        fields = ['id', 'message', 'repeat', 'time', 'from_date', 'to_date', 'created_at']
+        
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'message', 'created_at']

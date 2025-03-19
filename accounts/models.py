@@ -64,7 +64,7 @@ class Hospital(models.Model):
         return self.name
     
 class Facilities(models.Model):
-    hospital = models.ForeignKey(Hospital,on_delete=models.CASCADE)
+    hospital = models.ForeignKey(Hospital,on_delete=models.CASCADE,related_name='facilities')
     facility = models.CharField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -76,7 +76,7 @@ class Doctor(CustomUser):
     department = models.CharField(max_length=200,null=True,blank=True)
     about = models.TextField()
     experience = models.IntegerField()
-    hospital =models.ForeignKey(Hospital,on_delete=models.CASCADE)
+    hospital =models.ForeignKey(Hospital,on_delete=models.CASCADE,related_name='doctors')
     
     
     def __str__(self):
@@ -97,6 +97,7 @@ class Categories(models.Model):
 
 class Booking(models.Model):
     doctor = models.ForeignKey(Doctor,on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name='book_user',null=True)
     category = models.ForeignKey(Categories,on_delete=models.CASCADE)
     selected_date = models.DateField()
     selected_time = models.CharField(max_length=200)
@@ -104,7 +105,8 @@ class Booking(models.Model):
     
     
 class Prescription(models.Model):
-    booking = models.ForeignKey(Booking,on_delete=models.CASCADE)
+    doctor = models.ForeignKey(Doctor,on_delete=models.CASCADE,null=True)
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name='pres_user',null=True)
     image = models.FileField(upload_to='prescription_images')
     date = models.DateField(auto_now_add=True)
     
@@ -123,14 +125,15 @@ class Medications(models.Model):
     
     
 class EmergencyContact(models.Model):
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True)
     name = models.CharField(max_length=300)
     relationship = models.CharField(max_length=300)
     phone = models.IntegerField()
     email = models.EmailField()
     options = (
-        ('High','High'),
-        ('Medium','Medium'),
-        ('Low','Low')
+        ('1','High'),
+        ('2','Medium'),
+        ('3','Low')
     )
     priority = models.CharField(max_length=300 , choices=options)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -140,6 +143,7 @@ class EmergencyContact(models.Model):
     
     
 class Reminder(models.Model):
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True)
     message = models.TextField()
     repeat = models.BooleanField(default=False)
     time = models.TimeField()
@@ -152,5 +156,6 @@ class Reminder(models.Model):
     
     
 class Notification(models.Model):
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
