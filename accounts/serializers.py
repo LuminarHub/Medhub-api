@@ -80,11 +80,24 @@ class DoctorSer(serializers.ModelSerializer):
         fields = ['id','name','email','phone','image','dob','gender','rating','department','about','experience','hospital','hospital_name']
 
 class PrescriptionSer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source = 'user.name')
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())  # Automatically assigns the logged-in user
     doctor = DoctorSer()
+
     class Meta:
         model = Prescription
-        fields = ['id','image','doctor','date','user']
+        fields = ['id', 'image', 'doctor', 'date', 'user']
+
+    def create(self, validated_data):
+        """
+        Override the create method to handle bulk creation of prescriptions.
+        """
+        # If there are any nested serializer data (e.g., doctor), handle them accordingly
+        doctor_data = validated_data.pop('doctor', None)
+        if doctor_data:
+            # Assuming that you are passing doctor info in the request for each prescription
+            validated_data['doctor'] = Doctor.objects.get(id=doctor_data['id'])
+        return super().create(validated_data)
+    
     
 class PrescriptionAddSer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source = 'user.name')

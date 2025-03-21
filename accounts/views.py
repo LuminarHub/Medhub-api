@@ -145,16 +145,32 @@ class PrescriptionView(APIView):
             return Response(data={"Status":"Success","data":ser.data},status=status.HTTP_200_OK)
         except Exception as e:
             return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
-    def post(self,request):
+    def post(self, request):
         try:
-            ser=PrescriptionAddSer(data=request.data)
-            if ser.is_valid():    
-                ser.save(user=request.user)
-                return Response(data={"Status": "Success", "Msg": "Prescription Added Successful!!!!", "data": ser.data}, status=status.HTTP_200_OK)
-            else:
-                return Response(data={"Status":"Failed","Msg":"Not Added  successfully....","Errors":ser.errors},status=status.HTTP_400_BAD_REQUEST)  
+            prescriptions_data = request.data
+            if not isinstance(prescriptions_data, list):
+                return Response({"Status": "Failed", "Msg": "Expected a list of prescriptions."}, status=status.HTTP_400_BAD_REQUEST)
+            successful_prescriptions = []
+            failed_prescriptions = []
+            for prescription_data in prescriptions_data:
+                ser = PrescriptionAddSer(data=prescription_data)
+                if ser.is_valid():
+                    ser.save(user=request.user)  
+                    successful_prescriptions.append(ser.data)
+                else:
+                    failed_prescriptions.append({
+                        "data": prescription_data,
+                        "errors": ser.errors
+                    })
+            if successful_prescriptions:
+                success_response = {"Status": "Success", "Msg": f"{len(successful_prescriptions)} Prescriptions Added Successfully!", "data": successful_prescriptions}
+            
+            if failed_prescriptions:
+                failure_response = {"Status": "Failed", "Msg": f"{len(failed_prescriptions)} Prescriptions Failed to Add", "Errors": failed_prescriptions}
+            response_data = {**success_response, **failure_response}
+            return Response(data=response_data, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({"Status":"Failed","Error":str(e)},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"Status": "Failed", "Error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
    
 
 
