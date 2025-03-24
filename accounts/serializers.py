@@ -91,10 +91,8 @@ class PrescriptionSer(serializers.ModelSerializer):
         """
         Override the create method to handle bulk creation of prescriptions.
         """
-        # If there are any nested serializer data (e.g., doctor), handle them accordingly
         doctor_data = validated_data.pop('doctor', None)
         if doctor_data:
-            # Assuming that you are passing doctor info in the request for each prescription
             validated_data['doctor'] = Doctor.objects.get(id=doctor_data['id'])
         return super().create(validated_data)
     
