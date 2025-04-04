@@ -73,25 +73,32 @@ class MedicationSer(serializers.ModelSerializer):
         fields = ['id','name','start_date','end_date','time_interval','after_food','user']
     
     
+class TimeSlotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TimeSlots
+        fields = ['id', 'slot', 'created_at']
+  
+  
+    
 class DoctorSer(serializers.ModelSerializer):
     hospital_name = serializers.ReadOnlyField(source="hospital.name")
+    timeslots = TimeSlotSerializer(many=True, read_only=True)
+    
     class Meta:
         model = Doctor
-        fields = ['id','name','email','phone','image','dob','gender','rating','department','about','experience','hospital','hospital_name']
+        fields = ['id', 'name', 'email', 'phone', 'image', 'dob', 'gender', 'rating', 'department', 'about', 'experience', 'hospital', 'hospital_name', 'timeslots']
 
 class PrescriptionSer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source = 'user.name')
-    doctor = DoctorSer()
     class Meta:
         model = Prescription
         fields = ['id','image','doctor','date','user']
     
 class PrescriptionAddSer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source = 'user.name')
-    doctor_name = serializers.ReadOnlyField(source = 'doctor.name')
     class Meta:
         model = Prescription
-        fields = ['id','image','doctor','date','user','doctor_name']
+        fields = ['id','image','doctor','date','user']
 
         
 class EmergencyContactSer(serializers.ModelSerializer):
@@ -118,7 +125,6 @@ class CategorySer(serializers.ModelSerializer):
  
 class BookingGetSer(serializers.ModelSerializer):
     doctor = DoctorSer()
-    category = CategorySer()
     class Meta:
         model = Booking
         fields = '__all__'
@@ -141,3 +147,9 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'message', 'created_at']
+        
+        
+class UserReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking  # Example model
+        fields = "__all__"  # Include all fields

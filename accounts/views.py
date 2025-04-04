@@ -90,6 +90,7 @@ class AllDoctorsView(APIView):
         try:
             doc = Doctor.objects.all()
             ser = DoctorSer(doc,many=True)
+            print("doctors",ser.data)
             return Response(data={"Status":"Success","data":ser.data},status=status.HTTP_200_OK)
         except Exception as e:
             return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
@@ -106,16 +107,43 @@ class MediactionAddView(APIView):
             return Response(data={"Status":"Success","data":ser.data},status=status.HTTP_200_OK)
         except Exception as e:
             return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
-    def post(self,request):
+    def post(self, request):
         try:
-            ser=MedicationSer(data=request.data)
-            if ser.is_valid():    
-                ser.save(user=request.user)
-                return Response(data={"Status": "Success", "Msg": "Mediaction Added Successful!!!!", "data": ser.data}, status=status.HTTP_200_OK)
-            else:
-                return Response(data={"Status":"Failed","Msg":"Not Added  successfully....","Errors":ser.errors},status=status.HTTP_400_BAD_REQUEST)  
+            medications_data = request.data.get("data", [])
+            print("mmm",medications_data)
+            if not isinstance(medications_data, list):
+                return Response({"Status": "Failed", "Msg": "Expected a list of medications."}, status=status.HTTP_400_BAD_REQUEST)
+            successful_medications = []
+            failed_medications = []
+            
+            for medication_data in medications_data:
+                print(",,,,,,,",medication_data)
+                ser = MedicationSer(data=medication_data)
+                print("=======",ser)
+                if ser.is_valid():    
+                    ser.save(user=request.user)
+                    successful_medications.append(ser.data)
+                else:
+                    failed_medications.append({
+                        "data": medication_data,
+                        "errors": ser.errors
+                    })
+            success_response={}
+            failure_response = {}
+            # Construct the response based on successes and failures
+            if successful_medications:
+                success_response = {"Status": "Success", "Msg": f"{len(successful_medications)} Medications Added Successfully!", "data": successful_medications}
+            
+            if failed_medications:
+                failure_response = {"Status": "Failed", "Msg": f"{len(failed_medications)} Medications Failed to Add", "Errors": failed_medications}
+            
+            # Combine both success and failure responses
+            response_data = {**success_response, **failure_response}
+            return Response(data=response_data, status=status.HTTP_200_OK)
+        
         except Exception as e:
-            return Response({"Status":"Failed","Error":str(e)},status=status.HTTP_400_BAD_REQUEST)
+            print("eeeeeee",e)
+            return Response({"Status": "Failed", "Error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
    
 
 
@@ -250,6 +278,7 @@ class HospitalAllView(APIView):
         try:
             hospitals = Hospital.objects.all()
             ser = HospitalSer(hospitals,many=True)
+            print("Hospitals",ser.data)
             return Response(data={"Status":"Success","data":ser.data},status=status.HTTP_200_OK)
         except Exception as e:
             return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
@@ -266,6 +295,7 @@ class MyBookingView(APIView):
             user=request.user.id
             contact = Booking.objects.filter(user=user).order_by('-created_at')
             ser = BookingGetSer(contact,many=True)
+            print("all doctors get data",ser.data)
             return Response(data={"Status":"Success","data":ser.data},status=status.HTTP_200_OK)
         except Exception as e:
             return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
@@ -274,6 +304,9 @@ class MyBookingView(APIView):
             ser=BookingSer(data=request.data)
             if ser.is_valid():    
                 ser.save(user=request.user)
+                
+                Notification.objects.create(user=request.user,message="Booked Successfully")
+
                 return Response(data={"Status": "Success", "Msg": "Booked  Successful!!!!", "data": ser.data}, status=status.HTTP_200_OK)
             else:
                 return Response(data={"Status":"Failed","Msg":"Unsuccessful....","Errors":ser.errors},status=status.HTTP_400_BAD_REQUEST)  
@@ -312,7 +345,7 @@ class MyBookingDetailView(APIView):
         except Exception as e:
             return Response({"Status":"Failed","Error":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        
+from datetime import time  
 
 class ReminderView(APIView):
     permission_classes = [IsAuthenticated]
@@ -327,9 +360,18 @@ class ReminderView(APIView):
             return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
     def post(self,request):
         try:
-            ser=ReminderSerializer(data=request.data)
+            reminder_data = request.data
+            time_data = reminder_data.get('time')  
+            
+            if time_data:
+                reminder_time = time(hour=time_data['hour'], minute=time_data['minute'], second=time_data['second'])
+                reminder_data['time'] = reminder_time
+
+            ser = ReminderSerializer(data=reminder_data)
             if ser.is_valid():    
                 ser.save(user=request.user)
+                
+                Notification.objects.create(user=request.user,message="Reminder Added  Successful!!!!")
                 return Response(data={"Status": "Success", "Msg": "Reminder Added  Successful!!!!", "data": ser.data}, status=status.HTTP_200_OK)
             else:
                 return Response(data={"Status":"Failed","Msg":"Unsuccessful....","Errors":ser.errors},status=status.HTTP_400_BAD_REQUEST)  
@@ -348,6 +390,8 @@ class ReminderDetailView(APIView):
             ser=ReminderSerializer(reminder,data=request.data,partial=True) 
             if ser.is_valid():
                 ser.save()  
+                Notification.objects.create(user=request.user,message="Reminder Updated  Successfully!!!!")
+
                 return Response(data={"Status":"Success","Msg":"Reminder updated successfully","data": ser.data},status=status.HTTP_200_OK)
             else:
                 return Response(data={"Status": "Failed", "Msg": "Invalid data", "Errors": ser.errors},status=status.HTTP_400_BAD_REQUEST)
@@ -364,6 +408,8 @@ class ReminderDetailView(APIView):
             if rem.user!=request.user:
                 return Response(data={"Status":"Failed","Msg":"Unauthorized access: You do not have permission to delete this Reminder."},status=status.HTTP_401_UNAUTHORIZED)
             rem.delete()
+            Notification.objects.create(user=request.user,message="Reminder Deleted!!!!")
+
             return Response({"Status":"Success","Msg":" Reminder Deleted Successfully!!!!!"})
         except Exception as e:
             return Response({"Status":"Failed","Error":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -378,6 +424,7 @@ class NotificationsView(APIView):
             user=request.user.id
             rem = Notification.objects.filter(user=user).order_by('-created_at')
             ser = NotificationSerializer(rem,many=True)
+            print("notifications",ser.data)
             return Response(data={"Status":"Success","data":ser.data},status=status.HTTP_200_OK)
         except Exception as e:
             return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
@@ -426,3 +473,51 @@ def check_and_send_notifications():
             print(f"Reminder Notification: {notification.message}")
             if reminder.repeat:
                 pass
+            
+            
+from django.http import HttpResponse,JsonResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import os
+
+class UserReportPDFView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        user = request.user  
+
+        bookings = Booking.objects.filter(user=user)
+        prescriptions = Prescription.objects.filter(user=user)
+        medications = Medications.objects.filter(user=user)
+        emergency = EmergencyContact.objects.filter(user=user)
+
+        # Convert image URL to absolute
+        for prescription in prescriptions:
+            if prescription.image:
+                prescription.image_url = request.build_absolute_uri(prescription.image.url)
+            else:
+                prescription.image_url = None
+
+        # Render HTML template
+        html_string = render_to_string('report_template.html', {
+            'user': user,
+            'bookings': bookings,
+            'prescriptions': prescriptions,
+            'medications': medications,
+            'emergency': emergency,
+        })
+
+        # Define file path
+        pdf_dir = os.path.join(settings.MEDIA_ROOT, "pdf_reports")
+        os.makedirs(pdf_dir, exist_ok=True)  # Ensure directory exists
+        pdf_filename = f"user_report_{user.id}.pdf"
+        pdf_filepath = os.path.join(pdf_dir, pdf_filename)
+
+        # Generate PDF and save
+        HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(pdf_filepath)
+
+        # Generate downloadable URL
+        pdf_url = request.build_absolute_uri(settings.MEDIA_URL + f"pdf_reports/{pdf_filename}")
+
+        return JsonResponse({"data": pdf_url},status=status.HTTP_200_OK)

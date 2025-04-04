@@ -84,7 +84,8 @@ class Doctor(CustomUser):
     
 class TimeSlots(models.Model):
     slot = models.CharField(max_length=200)
-    doctor = models.ForeignKey(Doctor,on_delete=models.CASCADE)
+    doctor = models.ForeignKey(Doctor,on_delete=models.CASCADE, related_name='timeslots')
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
     
     def __str__(self):
         return self.slot
@@ -98,14 +99,14 @@ class Categories(models.Model):
 class Booking(models.Model):
     doctor = models.ForeignKey(Doctor,on_delete=models.CASCADE)
     user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name='book_user',null=True)
-    category = models.ForeignKey(Categories,on_delete=models.CASCADE)
-    selected_date = models.DateField()
+    # category = models.ForeignKey(Categories,on_delete=models.CASCADE)
+    selected_date = models.DateTimeField()
     selected_time = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     
     
 class Prescription(models.Model):
-    doctor = models.ForeignKey(Doctor,on_delete=models.CASCADE,null=True)
+    doctor = models.CharField(max_length=100,null=True)
     user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,related_name='pres_user',null=True)
     image = models.FileField(upload_to='prescription_images')
     date = models.DateField(auto_now_add=True)
@@ -114,9 +115,9 @@ class Prescription(models.Model):
 class Medications(models.Model):
     user = models.ForeignKey(CustomUser,on_delete=models.CASCADE,null=True)
     name = models.CharField(max_length=200)
-    start_date = models.DateField()
-    end_date = models.DateField()
-    time_interval = models.IntegerField()
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    time_interval = models.CharField(max_length=200)
     after_food = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
