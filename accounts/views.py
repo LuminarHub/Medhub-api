@@ -113,9 +113,10 @@ class MediactionAddView(APIView):
                 return Response({"Status": "Failed", "Msg": "Expected a list of medications."}, status=status.HTTP_400_BAD_REQUEST)
             successful_medications = []
             failed_medications = []
-            
+            print(medications_data)
             for medication_data in medications_data:
                 ser = MedicationSer(data=medication_data)
+                print(ser)
                 if ser.is_valid():    
                     ser.save(user=request.user)
                     successful_medications.append(ser.data)
@@ -124,7 +125,8 @@ class MediactionAddView(APIView):
                         "data": medication_data,
                         "errors": ser.errors
                     })
-            
+            success_response = {}
+            failure_response = {}
             # Construct the response based on successes and failures
             if successful_medications:
                 success_response = {"Status": "Success", "Msg": f"{len(successful_medications)} Medications Added Successfully!", "data": successful_medications}
@@ -334,7 +336,8 @@ class MyBookingDetailView(APIView):
         except Exception as e:
             return Response({"Status":"Failed","Error":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        
+
+from datetime import time
 
 class ReminderView(APIView):
     permission_classes = [IsAuthenticated]
@@ -349,7 +352,14 @@ class ReminderView(APIView):
             return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
     def post(self,request):
         try:
-            ser=ReminderSerializer(data=request.data)
+            reminder_data = request.data
+            time_data = reminder_data.get('time')  
+            
+            if time_data:
+                reminder_time = time(hour=time_data['hour'], minute=time_data['minute'], second=time_data['second'])
+                reminder_data['time'] = reminder_time
+
+            ser = ReminderSerializer(data=reminder_data)
             if ser.is_valid():    
                 ser.save(user=request.user)
                 return Response(data={"Status": "Success", "Msg": "Reminder Added  Successful!!!!", "data": ser.data}, status=status.HTTP_200_OK)
@@ -404,12 +414,21 @@ class NotificationsView(APIView):
         except Exception as e:
             return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
 
+class TimeSlotsView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    def get(self,request,pk):
+        try:
+            rem = TimeSlots.objects.filter(doctor=pk).order_by('-created_at')
+            ser = TimeSlotSer(rem,many=True)
+            return Response(data={"Status":"Success","data":ser.data},status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(data={"Status":"Failed","Msg":str(e)},status=status.HTTP_404_NOT_FOUND)
+
 
 
 class DoctorSearchAPIView(APIView):
-    
     def get(self, request, *args, **kwargs):
-        # Get query parameters
         name = request.query_params.get('name', None)
         department = request.query_params.get('department', None)
         hospital_name = request.query_params.get('hospital_name', None)
@@ -448,3 +467,103 @@ def check_and_send_notifications():
             print(f"Reminder Notification: {notification.message}")
             if reminder.repeat:
                 pass
+            
+            
+from django.http import HttpResponse,JsonResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import os
+
+class UserReportPDFView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        user = request.user  
+
+        bookings = Booking.objects.filter(user=user)
+        prescriptions = Prescription.objects.filter(user=user)
+        medications = Medications.objects.filter(user=user)
+        emergency = EmergencyContact.objects.filter(user=user)
+
+        # Convert image URL to absolute
+        for prescription in prescriptions:
+            if prescription.image:
+                prescription.image_url = request.build_absolute_uri(prescription.image.url)
+            else:
+                prescription.image_url = None
+
+        # Render HTML template
+        html_string = render_to_string('report_template.html', {
+            'user': user,
+            'bookings': bookings,
+            'prescriptions': prescriptions,
+            'medications': medications,
+            'emergency': emergency,
+        })
+
+        # Define file path
+        pdf_dir = os.path.join(settings.MEDIA_ROOT, "pdf_reports")
+        os.makedirs(pdf_dir, exist_ok=True)  # Ensure directory exists
+        pdf_filename = f"user_report_{user.id}.pdf"
+        pdf_filepath = os.path.join(pdf_dir, pdf_filename)
+
+        # Generate PDF and save
+        HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(pdf_filepath)
+
+        # Generate downloadable URL
+        pdf_url = request.build_absolute_uri(settings.MEDIA_URL + f"pdf_reports/{pdf_filename}")
+
+        return JsonResponse({"data": pdf_url},status=status.HTTP_200_OK)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+# Add these to your existing views.py file
+
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render
+from django.utils import timezone
+from datetime import timedelta
+from .models import Doctor, Booking, Facilities, Prescription, Hospital
+
+@staff_member_required
+def hospital_dashboard(request):
+    # If user is a doctor, get their hospital
+    if hasattr(request.user, 'doctor'):
+        hospital = request.user.doctor.hospital
+    elif hasattr(request.user, 'hospital'):
+        hospital = request.user.hospital
+    else:
+        # For superusers, just get the first hospital
+        hospital = Hospital.objects.first()
+    
+    # Get counts for dashboard
+    today = timezone.now().date()
+    total_doctors = Doctor.objects.filter(hospital=hospital).count()
+    total_facilities = Facilities.objects.filter(hospital=hospital).count()
+    pending_bookings = Booking.objects.filter(doctor__hospital=hospital, selected_date__gte=today).count()
+    today_bookings = Booking.objects.filter(doctor__hospital=hospital, selected_date=today).count()
+    recent_prescriptions = Prescription.objects.filter(doctor__hospital=hospital).order_by('-date')[:5].count()
+    
+    context = {
+        'hospital': hospital,
+        'total_doctors': total_doctors,
+        'total_facilities': total_facilities,
+        'pending_bookings': pending_bookings,
+        'today_bookings': today_bookings,
+        'recent_prescriptions': recent_prescriptions,
+    }
+    
+    return render(request, 'admin/hospital_dashboard.html', context)   
+    

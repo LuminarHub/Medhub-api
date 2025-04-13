@@ -34,7 +34,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
-
+    is_hospital = models.BooleanField(default=False)
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
@@ -84,10 +84,11 @@ class Doctor(CustomUser):
     
 class TimeSlots(models.Model):
     slot = models.CharField(max_length=200)
-    doctor = models.ForeignKey(Doctor,on_delete=models.CASCADE)
-    
+    doctor = models.ForeignKey(Doctor,on_delete=models.CASCADE, related_name='timeslots')
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
     def __str__(self):
         return self.slot
+    
     
 class Categories(models.Model):
     name = models.CharField(max_length=300)
@@ -116,7 +117,7 @@ class Medications(models.Model):
     name = models.CharField(max_length=200)
     start_date = models.DateField()
     end_date = models.DateField()
-    time_interval = models.IntegerField()
+    time_interval = models.CharField(max_length=200)
     after_food = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     

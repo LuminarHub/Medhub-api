@@ -1,0 +1,174 @@
+/* Create a file static/css/hospital_admin.css */
+
+/* Branding and header */
+#header {
+    background: #2c3e50;
+    color: #fff;
+}
+
+#branding h1 {
+    color: #fff;
+}
+
+.module h2, .module caption, .inline-group h2 {
+    background: #34495e;
+}
+
+div.breadcrumbs {
+    background: #3498db;
+}
+
+/* Links */
+a:link, a:visited {
+    color: #3498db;
+}
+
+/* Buttons */
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+    background: #3498db;
+}
+.button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover, a.button:hover {
+    background: #2980b9;
+}
+.button.default, input[type=submit].default, .submit-row input.default {
+    background: #2ecc71;
+}
+.button.default:hover, input[type=submit].default:hover, .submit-row input.default:hover {
+    background: #27ae60;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th {
+    background: #f2f2f2;
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Dashboard */
+.dashboard .module table th {
+    width: 100%;
+}
+
+.dashboard .module table td {
+    white-space: nowrap;
+}
+
+.dashboard .module table td a {
+    display: block;
+    padding: 4px 6px;
+}
+
+/* Model icons */
+.model-doctor .model-name {
+    background: url('icons/doctor.png') 0 0.5em no-repeat;
+    padding-left: 20px;
+}
+
+.model-hospital .model-name {
+    background: url('icons/hospital.png') 0 0.5em no-repeat;
+    padding-left: 20px;
+}
+
+.model-booking .model-name {
+    background: url('icons/booking.png') 0 0.5em no-repeat;
+    padding-left: 20px;
+}
+
+.model-facilities .model-name {
+    background: url('icons/facility.png') 0 0.5em no-repeat;
+    padding-left: 20px;
+}
+
+/* Dashboard cards */
+.app-box {
+    display: inline-block;
+    width: 45%;
+    margin: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    background: #fff;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.app-box:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-3px);
+}
+
+.app-box h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.app-box .app-count {
+    font-size: 36px;
+    color: #3498db;
+    margin: 10px 0;
+}
+
+.app-box .app-link {
+    display: block;
+    margin-top: 10px;
+    text-align: right;
+}
+.main-header .brand-image {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    margin-top: -3px;
+    margin-right: 5px;
+}
+
+.login-logo img {
+    width: 180px;
+    height: 180px;
+    border-radius: 60%;
+    object-fit: cover;
+    
+}
+
+/* Other custom styles */
+.main-header {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.dashboard-stats .card {
+    transition: all 0.3s ease;
+}
+
+.dashboard-stats .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Improved form styling */
+.form-group label {
+    font-weight: 500;
+    color: #444;
+}
+
+/* Customize select2 fields */
+.select2-container--default .select2-selection--single {
+    border-radius: 4px;
+    height: 38px;
+    border-color: #ddd;
+}
+
+/* Custom table styling */
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(0,0,0,0.05);
+}

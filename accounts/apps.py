@@ -43,16 +43,11 @@ def start_message_scheduler():
         )
 
         for reminder in reminders:
-            # Check if this reminder has not been sent yet
             if reminder.time <= now.time() and reminder.from_date <= now.date() <= reminder.to_date:
-                # Send the message to the user
                 send_reminder_message(reminder)
-
-                # If repeat is false, delete the reminder after sending it
                 if not reminder.repeat:
                     reminder.delete()
-
-        time.sleep(60)  # Check every minute for pending reminders
+        time.sleep(60) 
 
 
 def send_reminder_message(reminder):

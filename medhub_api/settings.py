@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,8 +41,153 @@ INSTALLED_APPS = [
     'accounts',
     'rest_framework',
     'corsheaders',
-   
-]
+] 
+
+JAZZMIN_SETTINGS = {
+    # Title on the login screen
+    "site_title": "MedCare Hospital Admin",
+    
+    # Title on the brand (top left)
+    "site_header": "MedCare Hospital",
+    
+    # Site logo - with correct sizing
+    "site_logo": "images/hospital.webp",
+    "site_logo_classes": "brand-image img-circle elevation-3",
+    "site_icon": "images/favicon.ico",
+    
+    # Logo text for sidebar (brand text)
+    "site_brand": "MedCare HMS",
+    
+    # Welcome text on the login screen
+    "welcome_sign": "Welcome to the Hospital Management Portal",
+    
+    # Copyright on the footer
+    "copyright": "MedCare Hospital Management Ltd © 2025",
+    
+    # The model admin to search from the search bar
+    "search_model": ["accounts.Doctor", "accounts.CustomUser", "accounts.Hospital"],
+    
+    # Field name on user model that contains avatar image
+    "user_avatar": "avatar",
+    
+    ############
+    # Top Menu #
+    ############
+    "topmenu_links": [
+        {"name": "Dashboard", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Hospital Website", "url": "https://medcare.example.com", "new_window": True},
+        {"model": "accounts.Doctor"},
+        {"model": "accounts.Booking"},
+    ],
+    
+    #############
+    # UI Tweaks #
+    #############
+    "show_ui_builder": True,
+    
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {
+        "auth.user": "collapsible",
+        "auth.group": "vertical_tabs",
+    },
+    
+    # Related Modal - Use modal instead of popup
+    "related_modal_active": True,
+    
+    # Use select2
+    "use_select2": True,
+    
+    # Custom links for the admin index page
+    "custom_links": {
+        "hospitals": [{
+            "name": "Hospital Dashboard", 
+            "url": "admin:index", 
+            "icon": "fas fa-chart-line"
+        }],
+    },
+    
+    # Custom icons for sidebar apps/models
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "accounts.Hospital": "fas fa-hospital",
+        "accounts.Doctor": "fas fa-user-md",
+        "accounts.Booking": "fas fa-calendar-check",
+        "accounts.TimeSlots": "fas fa-clock",
+        "accounts.Prescription": "fas fa-prescription-bottle-alt",
+        "accounts.CustomUser": "fas fa-user-circle",
+        "accounts.Categories": "fas fa-th-list",
+        "accounts.Medications": "fas fa-pills",
+        "accounts.EmergencyContact": "fas fa-ambulance",
+        "accounts.Reminder": "fas fa-bell",
+        "accounts.Notification": "fas fa-envelope",
+        "accounts.Facilities": "fas fa-building",
+    },
+    
+    # Dashboard configuration
+    "dashboard_custom_items": [
+        {
+            "type": "recent_actions",
+            "limit": 8,
+            "title": "Recent Actions",
+            "column": 0,
+            "order": 0,
+        },
+        {
+            "type": "stats",
+            "models": [
+                "accounts.Doctor",
+                "accounts.Booking",
+                "accounts.CustomUser",
+            ],
+            "column": 1,
+            "order": 0,
+        },
+    ],
+    
+    # Specify custom CSS file - make sure this path matches your static files configuration
+    "custom_css": "css/hospital-admin.css",  # Make sure this file path is correct
+    
+    # Specify custom JS file if needed
+    "custom_js": None,
+}
+
+# Jazzmin UI Tweaks
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-primary",
+    "accent": "accent-teal",
+    "navbar": "navbar-white navbar-light",
+    "no_navbar_border": True,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-teal",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": True,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "cosmo",
+    "dark_mode_theme": "darkly",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    },
+    "actions_sticky_top": True,
+}
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -52,7 +198,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
+MIDDLEWARE += [
+    'accounts.middlewares.HospitalAdminMiddleware',
+]
 ROOT_URLCONF = 'medhub_api.urls'
 
 TEMPLATES = [

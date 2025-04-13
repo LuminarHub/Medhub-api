@@ -18,8 +18,9 @@ urlpatterns = [
     path('reminder-detail/<int:pk>/',ReminderDetailView.as_view()),
     path('notification/',NotificationsView.as_view()),
     path('search/',DoctorSearchAPIView.as_view()),
-    
+    path('user-report/', UserReportPDFView.as_view(), name='user_report_pdf'),
     
     path('doctors-all/',AllDoctorsView.as_view()),
     path('hospitals-all/',HospitalAllView.as_view()),
+    path('timeslots/<int:pk>/',TimeSlotsView.as_view()),
 ]

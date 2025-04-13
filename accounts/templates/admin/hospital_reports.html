@@ -1,0 +1,268 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.css">
+  <style>
+    .reports-container {
+      padding: 20px;
+    }
+    .report-header {
+      margin-bottom: 20px;
+    }
+    .filter-bar {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .chart-container {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+      height: 400px;
+    }
+    .data-table {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .hospital-selector {
+      margin-bottom: 20px;
+    }
+    table.report-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table.report-table th,
+    table.report-table td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    table.report-table th {
+      background-color: #f8f9fc;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+  <div class="report-header">
+    <h1>Hospital Reports</h1>
+  </div>
+  
+  <div class="filter-bar">
+    <div class="row">
+      <div class="col-md-4">
+        <form method="get" id="hospital-form">
+          <label for="hospital_id">Select Hospital:</label>
+          <select name="hospital_id" id="hospital_id" onchange="document.getElementById('hospital-form').submit()">
+            {% for h in hospitals %}
+              <option value="{{ h.id }}" {% if h.id == hospital.id %}selected{% endif %}>{{ h.name }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+      <div class="col-md-8">
+        <form method="get" id="date-form">
+          <input type="hidden" name="hospital_id" value="{{ hospital.id }}">
+          <div class="row">
+            <div class="col-md-5">
+              <label for="start_date">Start Date:</label>
+              <input type="date" name="start_date" id="start_date" value="{{ start_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-5">
+              <label for="end_date">End Date:</label>
+              <input type="date" name="end_date" id="end_date" value="{{ end_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-primary" style="margin-top: 25px;">Apply</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-6">
+      <div class="chart-container">
+        <h3>Bookings by Date</h3>
+        <canvas id="bookingsChart"></canvas>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="chart-container">
+        <h3>Department Distribution</h3>
+        <canvas id="departmentsChart"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-12">
+      <div class="data-table">
+        <h3>Department Statistics</h3>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Number of Doctors</th>
+              <th>Percentage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dept in departments %}
+              <tr>
+                <td>{{ dept.department|default:"Undefined" }}</td>
+                <td>{{ dept.count }}</td>
+                <td>{{ dept.percentage|floatformat:1 }}%</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3">No departments found</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-12">
+      <div class="data-table">
+        <h3>Booking Statistics</h3>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Number of Bookings</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for booking in bookings_by_date %}
+              <tr>
+                <td>{{ booking.selected_date|date:"M d, Y" }}</td>
+                <td>{{ booking.count }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="2">No bookings found in selected date range</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+  {{ block.super }}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const hospitalId = {{ hospital.id }};
+      const startDate = "{{ start_date|date:'Y-m-d' }}";
+      const endDate = "{{ end_date|date:'Y-m-d' }}";
+      
+      // Bookings chart
+      fetch(`/admin/api/booking-timeline/${hospitalId}/?start_date=${startDate}&end_date=${endDate}`)
+        .then(response => response.json())
+        .then(data => {
+          const dates = data.timeline.map(item => item.date);
+          const counts = data.timeline.map(item => item.count);
+          
+          const bookingsCtx = document.getElementById('bookingsChart').getContext('2d');
+          new Chart(bookingsCtx, {
+            type: 'line',
+            data: {
+              labels: dates,
+              datasets: [{
+                label: 'Number of Bookings',
+                data: counts,
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderColor: 'rgba(78, 115, 223, 1)',
+                pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                borderWidth: 2,
+                fill: true
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                xAxes: [{
+                  gridLines: {
+                    display: false
+                  },
+                  ticks: {
+                    maxTicksLimit: 10
+                  }
+                }],
+                yAxes: [{
+                  ticks: {
+                    beginAtZero: true,
+                    precision: 0
+                  },
+                  gridLines: {
+                    color: "rgb(234, 236, 244)",
+                    zeroLineColor: "rgb(234, 236, 244)",
+                    drawBorder: false,
+                    drawTicks: false
+                  }
+                }]
+              }
+            }
+          });
+        });
+      
+      // Departments chart
+      const departments = [
+        {% for dept in departments %}
+          {
+            name: "{{ dept.department|default:'Undefined' }}",
+            count: {{ dept.count }}
+          },
+        {% endfor %}
+      ];
+      
+      const deptLabels = departments.map(dept => dept.name);
+      const deptData = departments.map(dept => dept.count);
+      
+      const deptCtx = document.getElementById('departmentsChart').getContext('2d');
+      new Chart(deptCtx, {
+        type: 'pie',
+        data: {
+          labels: deptLabels,
+          datasets: [{
+            data: deptData,
+            backgroundColor: [
+              '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+              '#5a5c69', '#858796', '#6f42c1', '#20c9a6', '#f8f9fc'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          legend: {
+            position: 'right'
+          }
+        }
+      });
+    });
+  </script>
+{% endblock %}

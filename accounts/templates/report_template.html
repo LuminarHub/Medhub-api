@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        h1 { text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Medical Report</h1>
+    <p><strong>Name:</strong> {{ user.name }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Phone:</strong> {{ user.phone }}</p>
+
+    <h2>Bookings</h2>
+    <table>
+        <tr>
+            <th>Doctor</th>
+            <th>Category</th>
+            <th>Date</th>
+            <th>Time</th>
+        </tr>
+        {% for booking in bookings %}
+        <tr>
+            <td>{{ booking.doctor.name }}</td>
+            <td>{{ booking.category.name }}</td>
+            <td>{{ booking.selected_date }}</td>
+            <td>{{ booking.selected_time }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">No bookings found.</td></tr>
+        {% endfor %}
+    </table>
+
+    <h2>Prescriptions</h2>
+    <table>
+        <tr>
+            <th>Doctor</th>
+            <th>Date</th>
+            <th>Prescription</th>
+        </tr>
+        {% for prescription in prescriptions %}
+        <tr>
+            <td>{{ prescription.doctor.name }}</td>
+            <td>{{ prescription.date }}</td>
+            <td><img src="{{ prescription.image.url }}" width="100" style="height:100px;"></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">No prescriptions found.</td></tr>
+        {% endfor %}
+    </table>
+
+    <h2>Medications</h2>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Time Interval</th>
+            <th>After Food</th>
+        </tr>
+        {% for med in medications %}
+        <tr>
+            <td>{{ med.name }}</td>
+            <td>{{ med.start_date }}</td>
+            <td>{{ med.end_date }}</td>
+            <td>{{ med.time_interval }}</td>
+            <td>{{ med.after_food }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No medications found.</td></tr>
+        {% endfor %}
+    </table>
+    <h2>Emergency Contacts</h2>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Relationship</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Priority</th>
+        </tr>
+        {% for med in emergency %}
+        <tr>
+            <td>{{ med.name }}</td>
+            <td>{{ med.relationship }}</td>
+            <td>{{ med.phone }}</td>
+            <td>{{ med.email }}</td>
+            <td>
+                {% if med.priority == 1 %}
+                    High 
+                {% elif med.priority == 2 %}
+                    Medium
+                {% else %}
+                    Low
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No medications found.</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

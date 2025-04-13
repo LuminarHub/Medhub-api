@@ -71,14 +71,25 @@ class MedicationSer(serializers.ModelSerializer):
     class Meta:
         model = Medications
         fields = ['id','name','start_date','end_date','time_interval','after_food','user']
-    
+  
+class TimeSlotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TimeSlots
+        fields = ['id', 'slot', 'created_at']
+  
+  
     
 class DoctorSer(serializers.ModelSerializer):
     hospital_name = serializers.ReadOnlyField(source="hospital.name")
+    timeslots = TimeSlotSerializer(many=True, read_only=True)
+    
     class Meta:
         model = Doctor
-        fields = ['id','name','email','phone','image','dob','gender','rating','department','about','experience','hospital','hospital_name']
-
+        fields = ['id', 'name', 'email', 'phone', 'image', 'dob', 'gender', 'rating', 'department', 'about', 'experience', 'hospital', 'hospital_name', 'timeslots']
+        
+        
+        
+        
 class PrescriptionSer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())  # Automatically assigns the logged-in user
     doctor = DoctorSer()
@@ -127,6 +138,13 @@ class CategorySer(serializers.ModelSerializer):
         model = Categories
         fields = '__all__'
  
+ 
+class TimeSlotSer(serializers.ModelSerializer):
+    class Meta:
+        model = TimeSlots
+        fields = '__all__'
+ 
+ 
 class BookingGetSer(serializers.ModelSerializer):
     doctor = DoctorSer()
     category = CategorySer()
@@ -134,21 +152,78 @@ class BookingGetSer(serializers.ModelSerializer):
         model = Booking
         fields = '__all__'
 
+
 class HospitalSer(serializers.ModelSerializer):
-    doctors = DoctorSer(many=True)  # This will list all doctors in the hospital
+    doctors = DoctorSer(many=True)
     facilities = FacilitySer(many=True)
     class Meta:
         model = Hospital
         fields = ['id','name','location','rating','about','image','doctors','facilities']
         
         
-
 class ReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reminder
         fields = ['id', 'message', 'repeat', 'time', 'from_date', 'to_date', 'created_at']
         
+        
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'message', 'created_at']
+        
+
+
+class UserReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking  # Example model
+        fields = "__all__"  # Include all fields
+
+
+# Add these to your existing serializers.py file
+
+from rest_framework import serializers
+from .models import Doctor, Hospital, CustomUser
+from django.contrib.auth.hashers import make_password
+
+class HospitalAdminRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = CustomUser
+        fields = ['name', 'email', 'phone', 'password', 'confirm_password']
+        
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords don't match")
+        return data
+    
+    def create(self, validated_data):
+        validated_data.pop('confirm_password')
+        validated_data['password'] = make_password(validated_data['password'])
+        validated_data['is_staff'] = True
+        return CustomUser.objects.create(**validated_data)
+
+class DoctorRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = Doctor
+        fields = ['name', 'email', 'phone', 'department', 'about', 'experience', 
+                 'hospital', 'password', 'confirm_password']
+        
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords don't match")
+        return data
+    
+    def create(self, validated_data):
+        validated_data.pop('confirm_password')
+        password = validated_data.pop('password')
+        doctor = Doctor(**validated_data)
+        doctor.set_password(password)
+        doctor.is_staff = True
+        doctor.save()
+        return doctor
