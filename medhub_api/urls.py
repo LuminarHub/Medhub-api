@@ -25,5 +25,4 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('acc/',include('accounts.urls')),
     path('', hospital_admin_site.urls),  # Custom admin for hospitals
-    # path('hospital-dashboard/', hospital_dashboard, name='hospital_dashboard'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

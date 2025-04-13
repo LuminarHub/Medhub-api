@@ -120,8 +120,6 @@ class TimeSlotsAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # if request.user.is_superuser:
-        #     return qs
         if request.user.is_hospital:
             return qs.filter(doctor__hospital=request.user.id)
         return qs
