@@ -63,6 +63,8 @@ class Hospital(models.Model):
     def __str__(self):
         return self.name
     
+    
+
 class Facilities(models.Model):
     hospital = models.ForeignKey(Hospital,on_delete=models.CASCADE,related_name='facilities')
     facility = models.CharField(max_length=500)

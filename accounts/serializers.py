@@ -71,7 +71,8 @@ class MedicationSer(serializers.ModelSerializer):
     class Meta:
         model = Medications
         fields = ['id','name','start_date','end_date','time_interval','after_food','user']
-  
+    
+    
 class TimeSlotSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeSlots
@@ -86,34 +87,18 @@ class DoctorSer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
         fields = ['id', 'name', 'email', 'phone', 'image', 'dob', 'gender', 'rating', 'department', 'about', 'experience', 'hospital', 'hospital_name', 'timeslots']
-        
-        
-        
-        
-class PrescriptionSer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())  # Automatically assigns the logged-in user
-    doctor = DoctorSer()
 
+class PrescriptionSer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source = 'user.name')
     class Meta:
         model = Prescription
-        fields = ['id', 'image', 'doctor', 'date', 'user']
-
-    def create(self, validated_data):
-        """
-        Override the create method to handle bulk creation of prescriptions.
-        """
-        doctor_data = validated_data.pop('doctor', None)
-        if doctor_data:
-            validated_data['doctor'] = Doctor.objects.get(id=doctor_data['id'])
-        return super().create(validated_data)
-    
+        fields = ['id','image','doctor','date','user']
     
 class PrescriptionAddSer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source = 'user.name')
-    doctor_name = serializers.ReadOnlyField(source = 'doctor.name')
     class Meta:
         model = Prescription
-        fields = ['id','image','doctor','date','user','doctor_name']
+        fields = ['id','image','doctor','date','user']
 
         
 class EmergencyContactSer(serializers.ModelSerializer):
@@ -138,47 +123,36 @@ class CategorySer(serializers.ModelSerializer):
         model = Categories
         fields = '__all__'
  
- 
-class TimeSlotSer(serializers.ModelSerializer):
-    class Meta:
-        model = TimeSlots
-        fields = '__all__'
- 
- 
 class BookingGetSer(serializers.ModelSerializer):
     doctor = DoctorSer()
-    category = CategorySer()
     class Meta:
         model = Booking
         fields = '__all__'
 
-
 class HospitalSer(serializers.ModelSerializer):
-    doctors = DoctorSer(many=True)
+    doctors = DoctorSer(many=True)  # This will list all doctors in the hospital
     facilities = FacilitySer(many=True)
     class Meta:
         model = Hospital
         fields = ['id','name','location','rating','about','image','doctors','facilities']
         
         
+
 class ReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reminder
         fields = ['id', 'message', 'repeat', 'time', 'from_date', 'to_date', 'created_at']
-        
         
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'message', 'created_at']
         
-
-
+        
 class UserReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking  # Example model
         fields = "__all__"  # Include all fields
-
 
 # Add these to your existing serializers.py file
 
