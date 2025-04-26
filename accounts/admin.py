@@ -14,6 +14,10 @@ class HospitalAdminSite(admin.AdminSite):
     site_header = 'Hospital Management System'
     site_title = 'Hospital Admin Portal'
     index_title = 'Hospital Management Dashboard'
+    
+    def has_permission(self, request):
+        return request.user.is_active and request.user.is_authenticated and request.user.is_hospital
+
 
 hospital_admin_site = HospitalAdminSite(name='hospital_admin')
 
@@ -25,14 +29,13 @@ class HospitalLoginForm(forms.Form):
 
 # Hospital Admin
 class HospitalAdmin(admin.ModelAdmin):
-    list_display = ('name', 'location', 'rating', 'hospital_image', 'created_at')
-    search_fields = ('name', 'location')
+    list_display = ('name', 'location', 'rating', 'hospital_image', 'created_at', 'user')
+    search_fields = ('name', 'location', 'user__email')
     list_filter = ('created_at', 'rating')
-    readonly_fields = ('hospital_image_preview',)
 
     fieldsets = (
         ('Hospital Information', {
-            'fields': ('name', 'location', 'rating', 'about', 'image', 'hospital_image_preview')
+            'fields': ('user', 'name', 'location', 'rating', 'about', 'image')
         }),
     )
 
@@ -42,11 +45,12 @@ class HospitalAdmin(admin.ModelAdmin):
         return '-'
     hospital_image.short_description = 'Image'
 
-    def hospital_image_preview(self, obj):
-        if obj.image:
-            return format_html('<img src="{}" width="300" height="300" />', obj.image.url)
-        return '-'
-    hospital_image_preview.short_description = 'Image Preview'
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser and not request.user.is_hospital :
+            return qs
+        return qs.filter(user=request.user)
+
 
 
 # Facilities Admin
@@ -57,23 +61,24 @@ class FacilitiesAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser:
+        if request.user.is_superuser and not request.user.is_hospital:
             return qs
-        if request.user.is_staff:
-            return qs.filter(hospital__doctors=request.user)
-        return None
+        if request.user.is_staff and hasattr(request.user, 'hospital_users'):
+            return qs.filter(hospital=request.user.hospital_users)
+        return qs.none()
 
+from django.conf import settings
 
 # Doctor Admin
 class DoctorAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone', 'department', 'experience', 'rating', 'doctor_image')
+    list_display = ('name', 'email', 'phone', 'department', 'experience', 'rating')
     search_fields = ('name', 'email', 'department')
     list_filter = ('department', 'experience', 'rating', 'hospital')
-    readonly_fields = ('doctor_image_preview',)
+    # readonly_fields = ('doctor_image_preview',)
 
     fieldsets = (
         ('Personal Information', {
-            'fields': ('name', 'email', 'phone',  'image', 'doctor_image_preview', 'dob', 'gender')
+            'fields': ('name', 'email', 'phone', 'image', 'dob', 'gender')
         }),
         ('Professional Information', {
             'fields': ('department', 'about', 'experience', 'rating', 'hospital')
@@ -85,23 +90,25 @@ class DoctorAdmin(admin.ModelAdmin):
 
     def doctor_image(self, obj):
         if obj.image:
-            return format_html('<img src="{}" width="50" height="50" />', obj.image.url)
+            # Force the URL to use MEDIA_URL
+            url = f"{settings.MEDIA_URL}{obj.image.name}"
+            return format_html('<img src="{}" width="50" height="50" />', url)
         return '-'
-    doctor_image.short_description = 'Image'
 
     def doctor_image_preview(self, obj):
         if obj.image:
-            return format_html('<img src="{}" width="300" height="300" />', obj.image.url)
+            # Force the URL to use MEDIA_URL
+            url = f"{settings.MEDIA_URL}{obj.image.name}"
+            return format_html('<img src="{}" width="300" height="300" />', url)
         return '-'
-    doctor_image_preview.short_description = 'Image Preview'
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # if request.user.is_superuser:
-        #     return qs
-        if request.user.is_hospital:
-            return qs.filter(hospital=request.user.id)
-        return qs
+        if request.user.is_superuser and not request.user.is_hospital :
+            return qs
+        if hasattr(request.user, 'hospital_users'):
+            return qs.filter(hospital=request.user.hospital_users)
+        return qs.none()
 
     def save_model(self, request, obj, form, change):
         if not change:  
@@ -120,15 +127,19 @@ class TimeSlotsAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_hospital:
-            return qs.filter(doctor__hospital=request.user.id)
-        return qs
+        if request.user.is_superuser and not request.user.is_hospital:
+            return qs
+        if hasattr(request.user, 'hospital_users'):
+            return qs.filter(doctor__hospital=request.user.hospital_users)
+        return qs.none()
 
 
 # Categories Admin
 class CategoriesAdmin(admin.ModelAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+    
+    
 
 
 # Booking Admin
@@ -139,11 +150,11 @@ class BookingAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # if request.user.is_superuser:
-        #     return qs
-        if request.user.is_hospital:
-            return qs.filter(doctor__hospital=request.user.id)
-        return qs
+        if request.user.is_superuser and not request.user.is_hospital:
+            return qs
+        if hasattr(request.user, 'hospital_users'):
+            return qs.filter(doctor__hospital=request.user.hospital_users)
+        return qs.none()
 
 
 # Prescription Admin
@@ -154,38 +165,44 @@ class PrescriptionAdmin(admin.ModelAdmin):
     readonly_fields = ('prescription_image_preview',)
 
     def prescription_image(self, obj):
-        if obj.image:
-            return format_html('<img src="{}" width="50" height="50" />', obj.image.url)
+        try:
+            if obj.image and hasattr(obj.image, 'url'):
+                return format_html('<img src="{}" width="50" height="50" />', obj.image.url)
+        except (ValueError, AttributeError):
+            pass
         return '-'
     prescription_image.short_description = 'Image'
 
     def prescription_image_preview(self, obj):
-        if obj.image:
-            return format_html('<img src="{}" width="300" height="300" />', obj.image.url)
+        try:
+            if obj.image and hasattr(obj.image, 'url'):
+                return format_html('<img src="{}" width="300" height="300" />', obj.image.url)
+        except (ValueError, AttributeError):
+            pass
         return '-'
     prescription_image_preview.short_description = 'Image Preview'
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # if request.user.is_superuser:
-        #     return qs
-        if request.user.is_hospital:
-            return qs.filter(Q(doctor__hospital=request.user.id) | Q(doctor=request.user))
-        return qs
+        if request.user.is_superuser and not request.user.is_hospital:
+            return qs
+        if hasattr(request.user, 'hospital_users'):
+            return qs.filter(doctor__hospital=request.user.hospital_users)
+        return qs.none()
 
 
 # Custom User Admin
 class CustomUserAdmin(UserAdmin):
-    list_display = ('name', 'email', 'phone', 'is_active', 'is_staff')
+    list_display = ('name', 'email', 'phone', 'is_active', 'is_staff', 'is_hospital')
     search_fields = ('name', 'email', 'phone')
-    list_filter = ('is_active', 'is_staff', 'gender')
+    list_filter = ('is_active', 'is_staff', 'is_hospital', 'gender')
 
     fieldsets = (
         ('Personal Information', {
             'fields': ('name', 'email', 'phone', 'password', 'image', 'dob', 'gender')
         }),
         ('Permissions', {
-            'fields': ('is_active', 'is_staff', 'is_superuser','is_hospital')
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'is_hospital')
         }),
     )
 
@@ -219,4 +236,4 @@ hospital_admin_site.register(Facilities, FacilitiesAdmin)
 hospital_admin_site.register(TimeSlots, TimeSlotsAdmin)
 hospital_admin_site.register(Booking, BookingAdmin)
 hospital_admin_site.register(Prescription, PrescriptionAdmin)
-hospital_admin_site.register(Categories, CategoriesAdmin)
+# hospital_admin_site.register(Categories, CategoriesAdmin)

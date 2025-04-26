@@ -53,6 +53,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     
 class Hospital(models.Model):
+    user= models.OneToOneField(CustomUser,on_delete=models.CASCADE,related_name='hospital_users',null=True,blank=True)
     name = models.CharField(max_length=300)
     location = models.CharField(max_length=300)
     rating = models.IntegerField()
@@ -66,12 +67,13 @@ class Hospital(models.Model):
     
 
 class Facilities(models.Model):
-    hospital = models.ForeignKey(Hospital,on_delete=models.CASCADE,related_name='facilities')
+    hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE, related_name='facilities')
     facility = models.CharField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     def __str__(self):
-        return self.facility
+        return f"{self.facility} - {self.hospital.name}"
+
 
 class Doctor(CustomUser):
     rating = models.IntegerField(null=True,blank=True)
